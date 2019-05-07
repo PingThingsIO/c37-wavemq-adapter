@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/PingThingsIO/c37wavemq/c37pb"
 	"github.com/gogo/protobuf/proto"
@@ -85,6 +86,13 @@ func makeDownstreams(entity []byte, namespace []byte, client mqpb.WAVEMQClient, 
 			for _, c := range cfg.Channels {
 				include[c] = true
 			}
+			published := 0
+			go func() {
+				for {
+					time.Sleep(10 * time.Second)
+					lg.Infof("published %d wavemq frames", published)
+				}
+			}()
 			batch := make([]*DataFrame, 0, BatchSize)
 			for df := range ch {
 				batch = append(batch, df)
@@ -187,6 +195,8 @@ func makeDownstreams(entity []byte, namespace []byte, client mqpb.WAVEMQClient, 
 						lg.Warningf("could not publish, grpc error: %v", err)
 					} else if stat.Error != nil {
 						lg.Warningf("could not publish: wavemq error: %v", stat.Error.Message)
+					} else {
+						published += 1
 					}
 					// spew.Dump(out)
 					// _ = perspective
